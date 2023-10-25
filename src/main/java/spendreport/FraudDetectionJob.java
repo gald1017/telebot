@@ -18,19 +18,60 @@
 
 package spendreport;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.walkthrough.common.sink.AlertSink;
 import org.apache.flink.walkthrough.common.entity.Alert;
 import org.apache.flink.walkthrough.common.entity.Transaction;
 import org.apache.flink.walkthrough.common.source.TransactionSource;
+import org.apache.flink.connector.kafka.source.KafkaSource;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Properties;
 
 /**
  * Skeleton code for the datastream walkthrough
  */
 public class FraudDetectionJob {
+
+	private static final String TOPIC = "telegram-bot";
+	private static final String FILE_PATH = "src/main/resources/consumer.config";
+
+	public static final String SOURCE_UID_PREFIX = "KafkaSource";
+
+	public static DataStream<InputMessage> getSourceStreamFromConfig(StreamExecutionEnvironment env) throws IOException {
+
+
+		Properties sourceConfig = new Properties();
+		sourceConfig.load(new FileReader(FILE_PATH));
+
+
+		KafkaSourceBuilder<InputMessage> builder = KafkaSource.<InputMessage>builder()
+				.setBootstrapServers(sourceConfig.getProperty("bootstrap.servers"))  // bootstrapServers = "Cas-RS02-EU-Pipeline1-Primary.servicebus.windows.net:9093";
+				.setTopics(TOPIC)
+//				.setGroupId(config.consumerGroup)
+				.setDeserializer(new InputMessageDeserializationSchema())
+				.setProperties(sourceConfig);
+
+		return env.fromSource(
+				builder.build(),
+				WatermarkStrategy.noWatermarks(),
+				SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers")
+		).uid(SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers"));
+	}
+
+
+
 	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		
+//		DataStreamSource<InputMessage> stream = env.addSource(new FlinkKafkaConsumer011<>(TOPIC, new InputMessageDeserializationSchema(), properties));
+		DataStream<InputMessage> stream = getSourceStreamFromConfig(env);
+		stream.print();
+
 
 		DataStream<Transaction> transactions = env
 			.addSource(new TransactionSource())
