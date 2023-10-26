@@ -28,6 +28,7 @@ import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrderness
 import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
@@ -66,7 +67,7 @@ public class mainRunner {
 
         return env.fromSource(
                 builder.build(),
-                WatermarkStrategy.forMonotonousTimestamps(), //.withIdleness(Duration.ofSeconds(10)),
+                WatermarkStrategy.noWatermarks(), //.withIdleness(Duration.ofSeconds(10)), // TODO: change to event time
                 SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers")
         ).uid(SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers"));
     }
@@ -75,42 +76,27 @@ public class mainRunner {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        DataStream<InputMessage> stream = getSourceStreamFromConfig(env);
-//                .assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<InputMessage>(Time.seconds(50)) {
-//            @Override
-//            public long extractTimestamp(InputMessage inputMessage) {
-//                return inputMessage.date;
-//            }
-//        });
+        DataStream<InputMessage> stream = getSourceStreamFromConfig(env)
+                .assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<InputMessage>(Time.seconds(50)) {
+            @Override
+            public long extractTimestamp(InputMessage inputMessage) {
+                return inputMessage.date;
+            }
+        });
 //		stream.print();
 
-		stream.windowAll(TumblingEventTimeWindows.of(Time.seconds(3))).apply(new AllWindowFunction<InputMessage, Object, TimeWindow>() {
-			@Override
-			public void apply(TimeWindow timeWindow, Iterable<InputMessage> iterable, Collector<Object> collector) throws Exception {
-				System.out.println("im processing4");
-				for (InputMessage msg : iterable) {
-					System.out.println("message: " + msg.text);
-					System.out.println("time: " + Instant.ofEpochMilli(msg.date));
-					collector.collect(msg.text);
-				}
-				System.out.println("all text:" + collector.toString());
+        //		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print(); // pipeline 1
 
-			}
-		});
-
-//		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print(); // pipeline 1
-
-		stream.windowAll(TumblingEventTimeWindows.of(Time.seconds(10)))
-                .allowedLateness(Time.seconds(1)).process(new ProcessAllWindowFunction<InputMessage, Object, TimeWindow>() {
+        stream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))) // TODO: change to event time
+                .allowedLateness(Time.seconds(10)).process(new ProcessAllWindowFunction<InputMessage, Object, TimeWindow>() {
                     @Override
                     public void process(ProcessAllWindowFunction<InputMessage, Object, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<Object> collector) throws Exception {
-                        System.out.println("im processing");
-						for (InputMessage msg : iterable) {
+                        System.out.println("im processing 10");
+                        for (InputMessage msg : iterable) {
                             System.out.println("message: " + msg.text);
                             System.out.println("time: " + Instant.ofEpochMilli(msg.date));
                             collector.collect(msg.text);
                         }
-                        System.out.println("all text:" + collector.toString());
                     }
                 }); // pipeline 2
 
