@@ -22,12 +22,19 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
+import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.connector.kafka.source.KafkaSource;
+import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Properties;
+
+import static jdk.nashorn.internal.objects.Global.print;
 
 /**
  * Skeleton code for the datastream walkthrough
@@ -66,15 +73,20 @@ public class mainRunner {
 	public static void main(String[] args) throws Exception {
 		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		
-//		DataStreamSource<InputMessage> stream = env.addSource(new FlinkKafkaConsumer011<>(TOPIC, new InputMessageDeserializationSchema(), properties));
-		DataStream<InputMessage> stream = getSourceStreamFromConfig(env);
+		DataStream<InputMessage> stream = getSourceStreamFromConfig(env).assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<InputMessage>(Time.seconds(50)) {
+			@Override
+			public long extractTimestamp(InputMessage inputMessage) {
+				return inputMessage.date;
+			}
+		});
 		stream.print();
 
 
+//		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print(); // pipeline 1
 
-//		DataStream<Transaction> transactions = env
-//			.addSource(new TransactionSource())
-//			.name("transactions");
+//		stream.windowAll(TumblingEventTimeWindows.of(Time.seconds(5))).process(msCountEnricher()).print(); // pipeline 2
+
+
 //
 //		DataStream<Alert> alerts = transactions
 //			.keyBy(Transaction::getAccountId)

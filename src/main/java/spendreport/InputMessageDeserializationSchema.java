@@ -2,6 +2,8 @@ package spendreport;
 
 import com.esotericsoftware.kryo.NotNull;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
@@ -13,6 +15,7 @@ import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.io.IOException;
+import java.util.Date;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -36,28 +39,12 @@ public class InputMessageDeserializationSchema implements
 
     @Override
     public void deserialize(ConsumerRecord<byte[], byte[]> consumerRecord, Collector<InputMessage> collector) throws IOException {
-//        return JsonUtils.getEventJsonMapper().readValue(message, EventHubMessageEnvelope.class);
-//        long currentTime = DateTime.now(DateTimeZone.UTC).getMillis();
+
         InputMessage inputMessage = objectMapper.readValue(consumerRecord.value(), InputMessage.class);
-        long millisecondsAsLong = (long) inputMessage.date; // Convert float to long
-        Instant instant = Instant.ofEpochMilli(millisecondsAsLong);
+
+        Instant instant = Instant.ofEpochMilli(inputMessage.date);
 
         System.out.println("Instant: " + instant);
-//        collector.collect(getSourceRecord(consumerRecord, inputMessage, currentTime));
         collector.collect(inputMessage);
     }
-
-//    @NotNull
-//    private InputMessage getSourceRecord(ConsumerRecord<byte[], byte[]> record, String message, long currentTime) {
-//        return new InputMessage(
-//                message,
-//                String.format("%s.%s", record.topic(), record.partition()),
-//                partitionInitializationTime,
-//                record.offset(),
-//                record.timestamp(),
-//                currentTime,
-//                null // TODO: check if ever needed, initial check indicate this was only relevant to `addAllFieldsToEvents` by idoBarav, which pretty much broke SEEP, so not needed
-//        );
-//    }
-
 }
