@@ -1,2 +1,3 @@
 flinkbot/resources/consumer.config
 target/*
+.idea/*
