@@ -19,13 +19,10 @@
 package spendreport;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.walkthrough.common.sink.AlertSink;
-import org.apache.flink.walkthrough.common.entity.Alert;
-import org.apache.flink.walkthrough.common.entity.Transaction;
-import org.apache.flink.walkthrough.common.source.TransactionSource;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 
 import java.io.FileReader;
@@ -35,7 +32,7 @@ import java.util.Properties;
 /**
  * Skeleton code for the datastream walkthrough
  */
-public class FraudDetectionJob {
+public class mainRunner {
 
 	private static final String TOPIC = "telegram-bot";
 	private static final String FILE_PATH = "src/main/resources/consumer.config";
@@ -52,8 +49,9 @@ public class FraudDetectionJob {
 		KafkaSourceBuilder<InputMessage> builder = KafkaSource.<InputMessage>builder()
 				.setBootstrapServers(sourceConfig.getProperty("bootstrap.servers"))  // bootstrapServers = "Cas-RS02-EU-Pipeline1-Primary.servicebus.windows.net:9093";
 				.setTopics(TOPIC)
-//				.setGroupId(config.consumerGroup)
+				.setGroupId(sourceConfig.getProperty("group.id"))
 				.setDeserializer(new InputMessageDeserializationSchema())
+				.setStartingOffsets(OffsetsInitializer.latest())
 				.setProperties(sourceConfig);
 
 		return env.fromSource(
@@ -73,18 +71,19 @@ public class FraudDetectionJob {
 		stream.print();
 
 
-		DataStream<Transaction> transactions = env
-			.addSource(new TransactionSource())
-			.name("transactions");
 
-		DataStream<Alert> alerts = transactions
-			.keyBy(Transaction::getAccountId)
-			.process(new FraudDetector())
-			.name("fraud-detector");
-
-		alerts
-			.addSink(new AlertSink())
-			.name("send-alerts");
+//		DataStream<Transaction> transactions = env
+//			.addSource(new TransactionSource())
+//			.name("transactions");
+//
+//		DataStream<Alert> alerts = transactions
+//			.keyBy(Transaction::getAccountId)
+//			.process(new FraudDetector())
+//			.name("fraud-detector");
+//
+//		alerts
+//			.addSink(new AlertSink())
+//			.name("send-alerts");
 
 		env.execute("Fraud Detection");
 	}
