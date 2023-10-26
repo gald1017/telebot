@@ -16,25 +16,20 @@
  * limitations under the License.
  */
 
-package spendreport;
+package flinkbot;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
-import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Properties;
-
-import static jdk.nashorn.internal.objects.Global.print;
 
 /**
  * Skeleton code for the datastream walkthrough

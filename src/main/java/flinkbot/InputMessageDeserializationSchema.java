@@ -1,25 +1,17 @@
-package spendreport;
+package flinkbot;
 
-import com.esotericsoftware.kryo.NotNull;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDeserializationSchema;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.io.IOException;
-import java.util.Date;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.*;
 
 public class InputMessageDeserializationSchema implements
         KafkaRecordDeserializationSchema<InputMessage> {

@@ -1,4 +1,4 @@
-package spendreport;
+package flinkbot;
 
 import org.apache.flink.shaded.curator5.com.google.common.base.Objects;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonProperty;
