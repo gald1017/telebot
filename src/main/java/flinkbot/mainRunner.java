@@ -74,16 +74,17 @@ public class mainRunner {
 
         DataStream<InputMessage> stream = getSourceStreamFromConfig(env)
                 .assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<InputMessage>(Time.seconds(50)) {
-            @Override
-            public long extractTimestamp(InputMessage inputMessage) {
-                return inputMessage.date;
-            }
-        });
-//		stream.print();
+                    @Override
+                    public long extractTimestamp(InputMessage inputMessage) {
+                        return inputMessage.date;
+                    }
+                });
+        // pipeline 1
+        // 1. key by chat id
+        // 2. enrich message count
+        // 3. trigger alert?
 
-        //		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print(); // pipeline 1
-
-
+        //		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print();
 
 
         // pipeline 2 - for Hebrew:
@@ -93,26 +94,28 @@ public class mainRunner {
 
         stream
                 .filter(new isHebrew())
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))).allowedLateness(Time.seconds(5))
-                        .process(new summarizeOperator<InputMessage,Object,TimeWindow>());
-    // pipeline 2 - for Arabic:
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))).allowedLateness(Time.seconds(5)) // TODO: change to event time
+                .process(new summarizeOperator<InputMessage, Object, TimeWindow>()); // TODO: should by async?
+        // pipeline 2 - for Arabic:
         // 1. windowing
         // 2. translate
         // 3. summarize
-        // write to sink
-        stream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))) // TODO: change to event time
-                .allowedLateness(Time.seconds(10)).process(new ProcessAllWindowFunction<InputMessage, Object, TimeWindow>() {
-                    @Override
-                    public void process(ProcessAllWindowFunction<InputMessage, Object, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<Object> collector) throws Exception {
-                        System.out.println("im processing 10");
-                        for (InputMessage msg : iterable) {
-                            System.out.println("message: " + msg.text);
-                            System.out.println("time: " + Instant.ofEpochMilli(msg.date));
-                            collector.collect(msg.text);
-                        }
-                    }
-                }); // pipeline 2
+//        // write to sink
 
+
+//        stream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))) // TODO: change to event time
+//                .allowedLateness(Time.seconds(10)).process(new ProcessAllWindowFunction<InputMessage, Object, TimeWindow>() {
+//                    @Override
+//                    public void process(ProcessAllWindowFunction<InputMessage, Object, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<Object> collector) throws Exception {
+//                        System.out.println("im processing 10");
+//                        for (InputMessage msg : iterable) {
+//                            System.out.println("message: " + msg.text);
+//                            System.out.println("time: " + Instant.ofEpochMilli(msg.date));
+//                            collector.collect(msg.text);
+//                        }
+//                    }
+//                }); // pipeline 2
+//
 
 //		DataStream<Alert> alerts = transactions
 //			.keyBy(Transaction::getAccountId)
@@ -123,6 +126,6 @@ public class mainRunner {
 //			.addSink(new AlertSink())
 //			.name("send-alerts");
 
-        env.execute("Fraud Detection");
+        env.execute("Tele-Bot");
     }
 }
