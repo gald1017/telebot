@@ -25,9 +25,7 @@ import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
-import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
-import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
@@ -35,10 +33,8 @@ import org.apache.flink.util.Collector;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Skeleton code for the datastream walkthrough
@@ -87,6 +83,23 @@ public class mainRunner {
 
         //		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print(); // pipeline 1
 
+
+
+
+        // pipeline 2 - for Hebrew:
+        // 1. windowing
+        // 3. summarize
+        // write to sink
+
+        stream
+                .filter(new isHebrew())
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))).allowedLateness(Time.seconds(5))
+                        .process(new summarizeOperator<InputMessage,Object,TimeWindow>());
+    // pipeline 2 - for Arabic:
+        // 1. windowing
+        // 2. translate
+        // 3. summarize
+        // write to sink
         stream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))) // TODO: change to event time
                 .allowedLateness(Time.seconds(10)).process(new ProcessAllWindowFunction<InputMessage, Object, TimeWindow>() {
                     @Override
@@ -101,7 +114,6 @@ public class mainRunner {
                 }); // pipeline 2
 
 
-//
 //		DataStream<Alert> alerts = transactions
 //			.keyBy(Transaction::getAccountId)
 //			.process(new FraudDetector())
