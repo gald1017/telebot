@@ -25,7 +25,7 @@ public class InputMessage {
     public InputMessage() {
     }
 
-    public InputMessage(String text, int date, Integer chat_id, Integer sender, Boolean is_hebrew) {
+    public InputMessage(String text, long date, Integer chat_id, Integer sender, Boolean is_hebrew) {
         this.text = text;
         this.date = date;
         this.chat_id = chat_id;
