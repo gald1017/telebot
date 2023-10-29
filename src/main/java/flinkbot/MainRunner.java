@@ -107,8 +107,7 @@ public class MainRunner {
                 .filter(new isArabic())
                 .uid("arabicStream")
                 .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*5))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()) // TODO: should by async?
-                .print();
+                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
 
 
 
