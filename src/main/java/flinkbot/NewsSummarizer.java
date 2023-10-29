@@ -15,7 +15,7 @@ public class NewsSummarizer<I, O, T extends Window> extends ProcessAllWindowFunc
     public void process(ProcessAllWindowFunction<InputMessage, NewsSummarization, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<NewsSummarization> collector) throws Exception {
         int message_length = ((Collection<?>) iterable).size();
         String listString = StreamSupport.stream(iterable.spliterator(), false)
-                .map(o -> o.text).collect(Collectors.joining(", "));
+                .map(o -> o.text).collect(Collectors.joining(". \n "));
 
         if (message_length < 1) {
             return;
