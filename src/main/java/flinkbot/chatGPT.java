@@ -12,13 +12,13 @@ public class chatGPT {
 
     public static String QueryChatGPT(Iterable<flinkbot.InputMessage> messagesList) {
 //        String url = "https://api.openai.com/v1/chat/completions";
-        String url = "https://mda-tp-bot.openai.azure.com/";
-        String apiKey = "51049b5a98dc4711b399d538a4118465";
-        String model = "gpt-3.5-turbo";
+        String url = "https://connectorgpt.openai.azure.com/";
+        String apiKey = "7fab7d42514548598388d882af77e51f";
+        String model = "TestChatGpt";
 //        String listString = String.join("\n ", messagesList);
 
         String listString = StreamSupport.stream(messagesList.spliterator(), false)
-                .map(i -> i.toString()).collect(Collectors.joining(", "));
+                .map(Object::toString).collect(Collectors.joining(", "));
 
         String prompt = "those are telegram messages:\n" + listString + "please summarize them:\n";
 

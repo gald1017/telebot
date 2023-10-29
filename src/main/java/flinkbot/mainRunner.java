@@ -96,6 +96,9 @@ public class mainRunner {
                 .filter(new isHebrew())
                 .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))).allowedLateness(Time.seconds(5)) // TODO: change to event time
                 .process(new summarizeOperator<InputMessage, Object, TimeWindow>()); // TODO: should by async?
+//        .addSink();
+
+
         // pipeline 2 - for Arabic:
         // 1. windowing
         // 2. translate

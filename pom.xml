@@ -84,6 +84,13 @@ under the License.
 			<artifactId>flink-connector-kafka</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.azure/azure-ai-openai -->
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-ai-openai</artifactId>
+			<version>1.0.0-beta.3</version>
+		</dependency>
+
 
 		<!-- https://mvnrepository.com/artifact/joda-time/joda-time -->
 		<dependency>

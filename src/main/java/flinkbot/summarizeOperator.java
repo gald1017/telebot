@@ -17,7 +17,8 @@ public class summarizeOperator<I, O, T extends Window> extends ProcessAllWindowF
             System.out.println("time: " + Instant.ofEpochMilli(msg.date));
             collector.collect(msg.text);
         }
-        chatGPT.QueryChatGPT(iterable);
+//        chatGPT.QueryChatGPT(iterable);
+        GetChatCompletionsSample.QueryChatGPT(iterable);
         System.out.println("done summarizeOperator");
     }
 }
