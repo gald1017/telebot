@@ -102,7 +102,9 @@ public class MainRunner {
         // 3. summarize
 //        // write to sink
         stream
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+                .filter(new isArabic())
+                .uid("arabicStream")
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*5))).allowedLateness(Time.seconds(2)) // TODO: change to event time
                 .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()) // TODO: should by async?
                 .print();
 

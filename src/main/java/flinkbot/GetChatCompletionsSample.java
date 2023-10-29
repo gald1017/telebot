@@ -47,8 +47,8 @@ public class GetChatCompletionsSample {
         List<String> result = new ArrayList<>();
         for (ChatChoice choice : chatCompletions.getChoices()) {
             ChatMessage message = choice.getMessage();
-            System.out.println("Message:");
-            System.out.println(message.getContent());
+//            System.out.println("Message:");
+//            System.out.println(message.getContent());
             result.add(message.getContent());
         }
 
