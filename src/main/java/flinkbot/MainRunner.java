@@ -76,6 +76,7 @@ public class MainRunner {
                         return inputMessage.date;
                     }
                 });
+
         // pipeline 1
         // 1. key by chat id
         // 2. enrich message count
@@ -89,10 +90,11 @@ public class MainRunner {
         // 3. summarize
         // write to sink
 
-//        stream
-//                .filter(new isHebrew())
-//                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-//                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()) // TODO: should by async?
+        stream
+                .filter(new isHebrew())
+                .uid("hebrewStream")
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*5))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
 //                .print();
 
 
@@ -109,28 +111,6 @@ public class MainRunner {
                 .print();
 
 
-//        stream.windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60))) // TODO: change to event time
-//                .allowedLateness(Time.seconds(10)).process(new ProcessAllWindowFunction<InputMessage, Object, TimeWindow>() {
-//                    @Override
-//                    public void process(ProcessAllWindowFunction<InputMessage, Object, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<Object> collector) throws Exception {
-//                        System.out.println("im processing 10");
-//                        for (InputMessage msg : iterable) {
-//                            System.out.println("message: " + msg.text);
-//                            System.out.println("time: " + Instant.ofEpochMilli(msg.date));
-//                            collector.collect(msg.text);
-//                        }
-//                    }
-//                }); // pipeline 2
-//
-
-//		DataStream<Alert> alerts = transactions
-//			.keyBy(Transaction::getAccountId)
-//			.process(new FraudDetector())
-//			.name("fraud-detector");
-//
-//		alerts
-//			.addSink(new AlertSink())
-//			.name("send-alerts");
 
         env.execute("Tele-Bot");
     }
