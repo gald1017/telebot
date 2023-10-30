@@ -21,14 +21,21 @@ public class NewsSummarizer<I, O, T extends Window> extends ProcessAllWindowFunc
             return;
         }
         InputMessage firstMsg = iterable.iterator().next();
-        String summarization = GetChatCompletionsSample.QueryChatGPT(iterable);
-        System.out.println("Summarized : " + message_length + "\n messages: " + listString);
-        System.out.println("Done News Summarizer: " + summarization);
-        collector.collect(
-                new NewsSummarization(
-                        summarization,
-                        firstMsg.date,
-                        firstMsg.chat_id
-                ));
+        try {
+            String summarization = GetChatCompletionsSample.QueryChatGPT(iterable);
+            System.out.println("Summarized : " + message_length + "\n messages: " + listString + "\n");
+            System.out.println("Done News Summarizer: " + summarization);
+            collector.collect(
+                    new NewsSummarization(
+                            summarization,
+                            firstMsg.date,
+                            firstMsg.chat_id
+                    ));
+        }
+    catch (Exception e) {
+        System.out.println("Error in News Summarizer: " + e.getMessage());
+        e.printStackTrace();
     }
-}
+    }
+    }
+

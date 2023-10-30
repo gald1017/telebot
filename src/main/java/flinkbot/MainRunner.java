@@ -20,6 +20,7 @@ package flinkbot;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -28,6 +29,7 @@ import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrderness
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import reactor.util.function.Tuple2;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -90,10 +92,14 @@ public class MainRunner {
         // 3. summarize
         // write to sink
 
+        // apply the async I/O transformation without retry
+//        DataStream<Tuple2<String, String>> resultStream =
+//                AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100);
+
         stream
                 .filter(new isHebrew())
                 .uid("hebrewStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*5))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*60))).allowedLateness(Time.seconds(2)) // TODO: change to event time
                 .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
 //                .print();
 
@@ -106,7 +112,7 @@ public class MainRunner {
         stream
                 .filter(new isArabic())
                 .uid("arabicStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*5))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*60))).allowedLateness(Time.seconds(2)) // TODO: change to event time
                 .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
 
 

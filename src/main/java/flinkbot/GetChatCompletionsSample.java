@@ -38,7 +38,8 @@ public class GetChatCompletionsSample {
         String listString = StreamSupport.stream(messagesList.spliterator(), false)
                 .map(o -> o.text).collect(Collectors.joining(", "));
 
-        String prompt = "those are telegram messages:\n" + listString + "please summarize them:\n";
+        String prompt = "those are telegram messages from various new channels:\n" + listString + "please summarize them." +
+                "Be accurate, concise and to the point use only the provided information.\n";
         List<ChatMessage> chatMessages = new ArrayList<>();
         chatMessages.add(new ChatMessage(ChatRole.USER, prompt));
         client.getChatCompletions(deploymentOrModelId, new ChatCompletionsOptions(chatMessages));
