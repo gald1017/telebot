@@ -19,8 +19,10 @@
 package flinkbot;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
+import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -29,7 +31,6 @@ import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrderness
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import reactor.util.function.Tuple2;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -41,16 +42,14 @@ import java.util.Properties;
 public class MainRunner {
 
     private static final String TOPIC = "telegram-bot";
-    private static final String FILE_PATH = "src/main/resources/consumer.config";
+    private static final String CONSUMER_CONFIG_FILE_PATH = "src/main/resources/consumer.config";
+    private static final String PRODUCER_CONFIG_FILE_PATH = "src/main/resources/producer.config";
 
     public static final String SOURCE_UID_PREFIX = "KafkaSource";
 
     public static DataStream<InputMessage> getSourceStreamFromConfig(StreamExecutionEnvironment env) throws IOException {
-
-
         Properties sourceConfig = new Properties();
-        sourceConfig.load(new FileReader(FILE_PATH));
-
+        sourceConfig.load(new FileReader(CONSUMER_CONFIG_FILE_PATH));
 
         KafkaSourceBuilder<InputMessage> builder = KafkaSource.<InputMessage>builder()
                 .setBootstrapServers(sourceConfig.getProperty("bootstrap.servers"))  // bootstrapServers = "Cas-RS02-EU-Pipeline1-Primary.servicebus.windows.net:9093";
@@ -65,6 +64,19 @@ public class MainRunner {
                 WatermarkStrategy.noWatermarks(), //.withIdleness(Duration.ofSeconds(10)), // TODO: change to event time
                 SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers")
         ).uid(SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers"));
+    }
+
+    public static void writeToSinkSingleTopic(DataStream<NewsSummarization> newsSummarizations) throws IOException {
+        Properties sinkConfig = new Properties();
+        sinkConfig.load(new FileReader(PRODUCER_CONFIG_FILE_PATH));
+
+        KafkaSink<NewsSummarization> sink = KafkaSink.<NewsSummarization>builder()
+                .setBootstrapServers(sinkConfig.getProperty("bootstrap.servers"))  // bootstrapServers = "Cas-RS02-EU-Pipeline1-Primary.servicebus.windows.net:9093";
+                .setKafkaProducerConfig(sinkConfig)
+                .setRecordSerializer(new NewsSummarizationSerializationSchema(TOPIC))
+                .build();
+
+        newsSummarizations.sinkTo(sink);
     }
 
 
@@ -96,13 +108,13 @@ public class MainRunner {
 //        DataStream<Tuple2<String, String>> resultStream =
 //                AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100);
 
-        stream
+        DataStream<NewsSummarization> newsSummarizationStream = stream
                 .filter(new isHebrew())
                 .uid("hebrewStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*60))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
-//                .print();
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(10))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+                .process(new NewsSummarizer<InputMessage, NewsSummarization, TimeWindow>()); // TODO: should by async?
 
+        writeToSinkSingleTopic(newsSummarizationStream);
 
         // pipeline 2 - for Arabic:
         // 1. windowing
@@ -112,10 +124,8 @@ public class MainRunner {
         stream
                 .filter(new isArabic())
                 .uid("arabicStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*60))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(10))).allowedLateness(Time.seconds(2)) // TODO: change to event time
                 .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
-
-
 
         env.execute("Tele-Bot");
     }

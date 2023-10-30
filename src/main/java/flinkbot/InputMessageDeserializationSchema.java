@@ -36,7 +36,7 @@ public class InputMessageDeserializationSchema implements
 
         Instant instant = Instant.ofEpochMilli(inputMessage.date);
 
-        System.out.println("Instant: " + instant);
+        // System.out.println("Instant: " + instant);
         collector.collect(inputMessage);
     }
 }
