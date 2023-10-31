@@ -8,10 +8,10 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public class promptPreparer extends ProcessAllWindowFunction<InputMessage, ConcatenatedMessages, TimeWindow> {
+public class promptPreparer extends ProcessAllWindowFunction<InputMessage, MessageObject, TimeWindow> {
 
     @Override
-    public void process(ProcessAllWindowFunction<InputMessage, ConcatenatedMessages, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<ConcatenatedMessages> collector) throws Exception {
+    public void process(ProcessAllWindowFunction<InputMessage, MessageObject, TimeWindow>.Context context, Iterable<InputMessage> iterable, Collector<MessageObject> collector) throws Exception {
         String listString = StreamSupport.stream(iterable.spliterator(), false)
                 .map(o -> o.text).collect(Collectors.joining(". \n "));
         int message_length = ((Collection<?>) iterable).size();
@@ -23,11 +23,12 @@ public class promptPreparer extends ProcessAllWindowFunction<InputMessage, Conca
         InputMessage firstMsg = iterable.iterator().next();
 
         collector.collect(
-                new ConcatenatedMessages(
+                new MessageObject(
                         listString,
                         firstMsg.date,
                         firstMsg.chat_id,
-                        message_length
+                        message_length,
+                        firstMsg.is_hebrew
                 ));
     }
 }

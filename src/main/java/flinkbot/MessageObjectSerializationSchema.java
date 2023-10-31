@@ -8,13 +8,13 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import javax.annotation.Nullable;
 
-public class NewsSummarizationSerializationSchema implements KafkaRecordSerializationSchema<NewsSummarization> {
+public class MessageObjectSerializationSchema implements KafkaRecordSerializationSchema<MessageObject> {
 
     static ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     private final String topic;
 
-    public NewsSummarizationSerializationSchema(String topic) {
+    public MessageObjectSerializationSchema(String topic) {
         this.topic = topic;
     }
 
@@ -25,7 +25,7 @@ public class NewsSummarizationSerializationSchema implements KafkaRecordSerializ
 
     @Nullable
     @Override
-    public ProducerRecord<byte[], byte[]> serialize(NewsSummarization element, KafkaSinkContext context, Long timestamp) {
+    public ProducerRecord<byte[], byte[]> serialize(MessageObject element, KafkaSinkContext context, Long timestamp) {
         try {
             return new ProducerRecord<>(
                     topic,

@@ -21,7 +21,6 @@ package flinkbot;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
-import org.apache.flink.streaming.api.datastream.AllWindowedStream;
 import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
@@ -32,7 +31,6 @@ import org.apache.flink.streaming.api.functions.async.AsyncRetryStrategy;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.util.retryable.AsyncRetryStrategies;
 import org.apache.flink.streaming.util.retryable.RetryPredicates;
 
@@ -49,6 +47,11 @@ public class MainRunner {
     private static final String TOPIC = "telegram-bot";
     private static final String CONSUMER_CONFIG_FILE_PATH = "src/main/resources/consumer.config";
     private static final String PRODUCER_CONFIG_FILE_PATH = "src/main/resources/producer.config";
+
+
+    private static final long ASYNC_TIME = 1000L;
+    private static final int WINDOW_TIME = 60 * 60;
+    private static final int CAPACITY = 100;
 
     public static final String SOURCE_UID_PREFIX = "KafkaSource";
 
@@ -71,14 +74,14 @@ public class MainRunner {
         ).uid(SOURCE_UID_PREFIX + sourceConfig.getProperty("bootstrap.servers"));
     }
 
-    public static void writeToSinkSingleTopic(DataStream<NewsSummarization> newsSummarizations) throws IOException {
+    public static void writeToSinkSingleTopic(DataStream<MessageObject> newsSummarizations) throws IOException {
         Properties sinkConfig = new Properties();
         sinkConfig.load(new FileReader(PRODUCER_CONFIG_FILE_PATH));
 
-        KafkaSink<NewsSummarization> sink = KafkaSink.<NewsSummarization>builder()
+        KafkaSink<MessageObject> sink = KafkaSink.<MessageObject>builder()
                 .setBootstrapServers(sinkConfig.getProperty("bootstrap.servers"))  // bootstrapServers = "Cas-RS02-EU-Pipeline1-Primary.servicebus.windows.net:9093";
                 .setKafkaProducerConfig(sinkConfig)
-                .setRecordSerializer(new NewsSummarizationSerializationSchema(TOPIC))
+                .setRecordSerializer(new MessageObjectSerializationSchema(TOPIC))
                 .build();
 
         newsSummarizations.sinkTo(sink);
@@ -120,26 +123,26 @@ public class MainRunner {
                         .build();
 
 
-        SingleOutputStreamOperator<ConcatenatedMessages> hebrewStream = stream
+        SingleOutputStreamOperator<MessageObject> hebrewStream = stream
                 .filter(new isHebrew())
                 .uid("hebrewStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60 * 3))).allowedLateness(Time.seconds(2))
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(WINDOW_TIME))).allowedLateness(Time.seconds(2))
                 .process(new promptPreparer());
 
-        SingleOutputStreamOperator<NewsSummarization> hebrewSummarizedStream = AsyncDataStream.unorderedWaitWithRetry(hebrewStream, new gptAsync(),
-                1000, TimeUnit.SECONDS, 100, asyncRetryStrategy);
+        SingleOutputStreamOperator<MessageObject> hebrewSummarizedStream = AsyncDataStream.unorderedWaitWithRetry(hebrewStream, new gptAsync(),
+                ASYNC_TIME, TimeUnit.SECONDS, CAPACITY, asyncRetryStrategy);
 
         writeToSinkSingleTopic(hebrewSummarizedStream);
 
 
-        SingleOutputStreamOperator<ConcatenatedMessages> arabicStream = stream
+        SingleOutputStreamOperator<MessageObject> arabicStream = stream
                 .filter(new isArabic())
                 .uid("arabicStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60 * 3))).allowedLateness(Time.seconds(2))
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(WINDOW_TIME))).allowedLateness(Time.seconds(2))
                 .process(new promptPreparer());
 
-        SingleOutputStreamOperator<NewsSummarization> arabicSummarizedStream = AsyncDataStream.unorderedWaitWithRetry(arabicStream, new gptAsync(),
-                1000, TimeUnit.SECONDS, 100, asyncRetryStrategy);
+        SingleOutputStreamOperator<MessageObject> arabicSummarizedStream = AsyncDataStream.unorderedWaitWithRetry(arabicStream, new gptAsync(),
+                ASYNC_TIME, TimeUnit.SECONDS, CAPACITY, asyncRetryStrategy);
 
         writeToSinkSingleTopic(arabicSummarizedStream);
 
