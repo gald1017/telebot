@@ -50,7 +50,7 @@ public class MainRunner {
 
 
     private static final long ASYNC_TIME = 1000L;
-    private static final int WINDOW_TIME = 60 * 60;
+    private static final int WINDOW_TIME = 60*15;
     private static final int CAPACITY = 100;
 
     public static final String SOURCE_UID_PREFIX = "KafkaSource";
