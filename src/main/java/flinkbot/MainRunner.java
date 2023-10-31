@@ -19,22 +19,27 @@
 package flinkbot;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.streaming.api.datastream.AllWindowedStream;
+import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSourceBuilder;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.connector.kafka.source.KafkaSource;
+import org.apache.flink.streaming.api.functions.async.AsyncRetryStrategy;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.util.retryable.AsyncRetryStrategies;
+import org.apache.flink.streaming.util.retryable.RetryPredicates;
 
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Skeleton code for the datastream walkthrough
@@ -105,27 +110,59 @@ public class MainRunner {
         // write to sink
 
         // apply the async I/O transformation without retry
-//        DataStream<Tuple2<String, String>> resultStream =
-//                AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100);
+//        SingleOutputStreamOperator<NewsSummarization> resultStream =
+//                AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest<InputMessage, NewsSummarization>(), 1000, TimeUnit.MILLISECONDS, 100);
 
-        DataStream<NewsSummarization> newsSummarizationStream = stream
+        AsyncRetryStrategy asyncRetryStrategy =
+                new AsyncRetryStrategies.FixedDelayRetryStrategyBuilder(3, 100L) // maxAttempts=3, fixedDelay=100ms
+                        .ifResult(RetryPredicates.EMPTY_RESULT_PREDICATE)
+                        .ifException(RetryPredicates.HAS_EXCEPTION_PREDICATE)
+                        .build();
+
+
+        SingleOutputStreamOperator<ConcatenatedMessages> hebrewStream = stream
                 .filter(new isHebrew())
                 .uid("hebrewStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(10))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-                .process(new NewsSummarizer<InputMessage, NewsSummarization, TimeWindow>()); // TODO: should by async?
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60 * 3))).allowedLateness(Time.seconds(2))
+                .process(new promptPreparer());
 
-        writeToSinkSingleTopic(newsSummarizationStream);
+        SingleOutputStreamOperator<NewsSummarization> hebrewSummarizedStream = AsyncDataStream.unorderedWaitWithRetry(hebrewStream, new gptAsync(),
+                1000, TimeUnit.SECONDS, 100, asyncRetryStrategy);
+
+        writeToSinkSingleTopic(hebrewSummarizedStream);
+
+
+        SingleOutputStreamOperator<ConcatenatedMessages> arabicStream = stream
+                .filter(new isArabic())
+                .uid("arabicStream")
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60 * 3))).allowedLateness(Time.seconds(2))
+                .process(new promptPreparer());
+
+        SingleOutputStreamOperator<NewsSummarization> arabicSummarizedStream = AsyncDataStream.unorderedWaitWithRetry(arabicStream, new gptAsync(),
+                1000, TimeUnit.SECONDS, 100, asyncRetryStrategy);
+
+        writeToSinkSingleTopic(arabicSummarizedStream);
+
+
+
+//        DataStream<NewsSummarization> newsSummarizationStream = stream
+//                .filter(new isHebrew())
+//                .uid("hebrewStream")
+//                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*3))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+//                .process(new NewsSummarizer<InputMessage, NewsSummarization, TimeWindow>()); // TODO: should by async?
+//
+//        writeToSinkSingleTopic(newsSummarizationStream);
 
         // pipeline 2 - for Arabic:
         // 1. windowing
         // 2. translate
         // 3. summarize
 //        // write to sink
-        stream
-                .filter(new isArabic())
-                .uid("arabicStream")
-                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(10))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
+//        stream
+//                .filter(new isArabic())
+//                .uid("arabicStream")
+//                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*3))).allowedLateness(Time.seconds(2)) // TODO: change to event time
+//                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
 
         env.execute("Tele-Bot");
     }
