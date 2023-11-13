@@ -40,8 +40,8 @@ public class GetChatCompletionsSample {
         client.getChatCompletions(deploymentOrModelId, new ChatCompletionsOptions(chatMessages));
 
         ChatCompletions chatCompletions = client.getChatCompletions(deploymentOrModelId, new ChatCompletionsOptions(chatMessages));
-//
-        System.out.printf("Model ID=%s is created at %s.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
+
+//        System.out.printf("Model ID=%s is created at %s.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
         List<String> result = new ArrayList<>();
         for (ChatChoice choice : chatCompletions.getChoices()) {
             ChatMessage message = choice.getMessage();

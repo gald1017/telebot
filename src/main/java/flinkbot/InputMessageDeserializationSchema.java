@@ -34,9 +34,6 @@ public class InputMessageDeserializationSchema implements
 
         InputMessage inputMessage = objectMapper.readValue(consumerRecord.value(), InputMessage.class);
 
-        Instant instant = Instant.ofEpochMilli(inputMessage.date);
-
-        // System.out.println("Instant: " + instant);
         collector.collect(inputMessage);
     }
 }

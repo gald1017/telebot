@@ -35,10 +35,24 @@ public class gptAsync extends RichAsyncFunction<MessageObject, MessageObject> {
             } catch (Exception e) {
                 System.out.println("Error in News Summarizer: " + e.getMessage());
                 e.printStackTrace();
+
+                if (e.getMessage().contains("The response was filtered due to the prompt triggering Azure OpenAI’s content management policy.")
+                        || e.getMessage().contains("blablaa")) {
+                    System.out.println("429 error, sleeping for 10 seconds");
+                    int endIndex = Math.max(0, concatenatedMessages.text.length() / 2);
+                    try {
+                        return GetChatCompletionsSample.QueryChatGPT(concatenatedMessages.text.substring(endIndex), client);
+                    } catch (Exception exception) {
+                        resultFuture.complete(Collections.singleton(concatenatedMessages));
+                    }
+                }
+
+                resultFuture.complete(Collections.singleton(concatenatedMessages));
                 return null;
             }
         }).thenAccept((String summarization) -> {
-            System.out.println("Done News Summarizer: \n" + summarization);
+            System.out.println("Done News Summarizer. " + " is_hebrew " + concatenatedMessages.is_hebrew
+                    + " summary: " + summarization + "\n");
 
             resultFuture.complete(
                     Collections.singleton(
@@ -52,25 +66,5 @@ public class gptAsync extends RichAsyncFunction<MessageObject, MessageObject> {
             );
         });
 
-//
-//        try {
-//            String summarization = GetChatCompletionsSample.QueryChatGPT(concatenatedMessages.concatenated_messages, client);
-//            System.out.println("Done News Summarizer: \n" + summarization);
-//
-//            resultFuture.complete(
-//                    Collections.singleton(
-//                            new NewsSummarization(
-//                                    summarization,
-//                                    concatenatedMessages.date,
-//                                    concatenatedMessages.chat_id
-//                            )
-//                    )
-//            );
-//        }
-//        catch (Exception e) {
-//            System.out.println("Error in News Summarizer: " + e.getMessage());
-//            e.printStackTrace();
-//        }
-//    }
     }
 }

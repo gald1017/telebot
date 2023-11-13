@@ -10,8 +10,7 @@ public class InputMessage {
 //    public String message;
     @JsonProperty("text")
     public String text;
-//    @JsonDeserialize(using = LocalDateDeserializer.class)
-//    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ssXXX")
+
     @JsonProperty("date")
     public long date;
     @JsonProperty("chat_id")

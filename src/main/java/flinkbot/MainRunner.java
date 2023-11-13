@@ -50,7 +50,7 @@ public class MainRunner {
 
 
     private static final long ASYNC_TIME = 1000L;
-    private static final int WINDOW_TIME = 60*15;
+    private static final int WINDOW_TIME = 60*2; // minutes
     private static final int CAPACITY = 100;
 
     public static final String SOURCE_UID_PREFIX = "KafkaSource";
@@ -107,14 +107,10 @@ public class MainRunner {
         //		stream.keyBy(InputMessage::getChat_id).process(msCountEnricher()).trigger(new CountTrigger(5)).print();
 
 
-        // pipeline 2 - for Hebrew:
+        // pipeline 2:
         // 1. windowing
         // 3. summarize
         // write to sink
-
-        // apply the async I/O transformation without retry
-//        SingleOutputStreamOperator<NewsSummarization> resultStream =
-//                AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest<InputMessage, NewsSummarization>(), 1000, TimeUnit.MILLISECONDS, 100);
 
         AsyncRetryStrategy asyncRetryStrategy =
                 new AsyncRetryStrategies.FixedDelayRetryStrategyBuilder(3, 100L) // maxAttempts=3, fixedDelay=100ms
@@ -145,27 +141,6 @@ public class MainRunner {
                 ASYNC_TIME, TimeUnit.SECONDS, CAPACITY, asyncRetryStrategy);
 
         writeToSinkSingleTopic(arabicSummarizedStream);
-
-
-
-//        DataStream<NewsSummarization> newsSummarizationStream = stream
-//                .filter(new isHebrew())
-//                .uid("hebrewStream")
-//                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*3))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-//                .process(new NewsSummarizer<InputMessage, NewsSummarization, TimeWindow>()); // TODO: should by async?
-//
-//        writeToSinkSingleTopic(newsSummarizationStream);
-
-        // pipeline 2 - for Arabic:
-        // 1. windowing
-        // 2. translate
-        // 3. summarize
-//        // write to sink
-//        stream
-//                .filter(new isArabic())
-//                .uid("arabicStream")
-//                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(60*3))).allowedLateness(Time.seconds(2)) // TODO: change to event time
-//                .process(new NewsSummarizer<InputMessage, Object, TimeWindow>()); // TODO: should by async?
 
         env.execute("Tele-Bot");
     }
